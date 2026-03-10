@@ -1,0 +1,27 @@
+#!/usr/bin/env python
+
+import os
+
+Import("env")
+Import("env_modules")
+
+env_gdcpp = env_modules.Clone()
+
+# Path to the gdcpp game source
+gdcpp_root = os.path.abspath(os.path.join(os.path.dirname(str(File("SCsub").srcnode())), ".."))
+
+# Add include paths so game code can find its headers
+env_gdcpp.Append(CPPPATH=[
+    os.path.join(gdcpp_root, "gdcpp", "include"),
+    os.path.join(gdcpp_root, "gdcpp", "src"),
+])
+env_gdcpp.Append(CPPDEFINES=["GDCPP_MODULE"])
+
+# Compile game source files
+gdcpp_src = os.path.join(gdcpp_root, "gdcpp", "src")
+for cpp_file in sorted(os.listdir(gdcpp_src)):
+    if cpp_file.endswith(".cpp"):
+        env_gdcpp.add_source_files(env.modules_sources, os.path.join(gdcpp_src, cpp_file))
+
+# Compile module registration
+env_gdcpp.add_source_files(env.modules_sources, "register_types.cpp")

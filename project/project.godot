@@ -1,0 +1,18 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; but it can also be edited via text for quick changes.
+
+[application]
+
+config/name="gdcpp Sample"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.5")
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
