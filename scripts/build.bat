@@ -6,6 +6,11 @@ cd /d "%~dp0.."
 set "MODE=%~1"
 set "PLATFORM=%~2"
 
+:: Show usage
+if "%MODE%"=="--help" goto :usage
+if "%MODE%"=="-h" goto :usage
+if "%MODE%"=="/?" goto :usage
+
 if "%MODE%"=="" set "MODE=debug"
 if "%PLATFORM%"=="" set "PLATFORM=windows"
 
@@ -14,6 +19,16 @@ where scons >nul 2>&1
 if errorlevel 1 (
     echo ERROR: scons not found in PATH. Activate your Python virtual environment first.
     goto :fail
+)
+
+:: Validate emscripten for web builds
+if "%PLATFORM%"=="web" (
+    where emcc >nul 2>&1
+    if errorlevel 1 (
+        echo ERROR: emcc ^(Emscripten^) not found in PATH.
+        echo   Install Emscripten 3.1+ and activate it: emsdk activate latest
+        goto :fail
+    )
 )
 
 :: Count CPU cores for parallel build
@@ -73,6 +88,11 @@ set "PROJECT_DIR=%cd%"
 set "MODULE_PATH=%cd%\module"
 set "PROFILE_PATH=%cd%\custom.py"
 
+:: Web release needs extra flags
+if "%PLATFORM%"=="web" goto :release_web
+goto :release_native
+
+:release_native
 echo --- Building Godot with gdcpp module release...
 pushd "%GODOT_SOURCE%"
 scons platform=%PLATFORM% profile="%PROFILE_PATH%" custom_modules="%MODULE_PATH%" -j%JOBS%
@@ -100,6 +120,32 @@ if exist "%BUILD_DIR%\*.pck" del /q "%BUILD_DIR%\*.pck"
 echo --- Release build complete. Output in %BUILD_DIR%\
 goto :done
 
+:release_web
+echo --- Building Godot for web with gdcpp module release...
+pushd "%GODOT_SOURCE%"
+scons platform=web profile="%PROFILE_PATH%" custom_modules="%MODULE_PATH%" threads=no dlink_enabled=no -j%JOBS%
+if errorlevel 1 popd & goto :fail
+popd
+
+set "BUILD_DIR=build-web\release"
+if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
+
+echo --- Copying web output to %BUILD_DIR%\
+copy /y "%GODOT_SOURCE%\bin\godot.web.template_release.wasm32.nothreads.wasm" "%BUILD_DIR%\" >nul 2>&1
+copy /y "%GODOT_SOURCE%\bin\godot.web.template_release.wasm32.nothreads.js" "%BUILD_DIR%\" >nul 2>&1
+
+:: Create standalone .pck (cannot embed into wasm)
+call :setup_godot_dir
+echo --- Packing project data...
+python "%~dp0pack.py" "%PROJECT_DIR%\project" "%BUILD_DIR%\godot.web.template_release.wasm32.nothreads.pck"
+if errorlevel 1 goto :fail
+
+:: Copy HTML shell
+copy /y "%~dp0web_shell.html" "%BUILD_DIR%\index.html" >nul 2>&1
+
+echo --- Web release build complete. Output in %BUILD_DIR%\
+goto :done
+
 :setup_godot_dir
 if not exist "project\.godot" mkdir "project\.godot"
 if not exist "project\.godot\global_script_class_cache.cfg" (
@@ -107,6 +153,24 @@ if not exist "project\.godot\global_script_class_cache.cfg" (
     echo.>> "project\.godot\global_script_class_cache.cfg"
     echo list=[]>> "project\.godot\global_script_class_cache.cfg"
 )
+exit /b 0
+
+:usage
+echo Usage: build.bat [debug^|release] [windows^|web]
+echo.
+echo Modes:
+echo   debug    Build GDExtension shared library via godot-cpp (default)
+echo   release  Build single binary via Godot module system (needs GODOT_SOURCE)
+echo.
+echo Platforms:
+echo   windows  Windows native build (default)
+echo   web      WebAssembly build via Emscripten (needs emcc in PATH)
+echo.
+echo Examples:
+echo   build.bat                   Debug build for Windows
+echo   build.bat release           Release build for Windows
+echo   build.bat debug web         Debug GDExtension for web
+echo   build.bat release web       Release build for web
 exit /b 0
 
 :done

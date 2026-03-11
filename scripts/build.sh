@@ -98,15 +98,22 @@ elif [ "$MODE" = "release" ]; then
 
     MODULE_PATH="$PROJECT_ROOT/module"
 
+    # Web release needs extra flags
+    WEB_FLAGS=""
+    if [ "$PLATFORM" = "web" ]; then
+        WEB_FLAGS="threads=no dlink_enabled=no"
+    fi
+
     echo "--- Building Godot with gdcpp module (release)..."
     cd "$GODOT_SOURCE"
     scons \
         platform="$SCONS_PLATFORM" \
         profile="$PROJECT_ROOT/custom.py" \
         custom_modules="$MODULE_PATH" \
+        $WEB_FLAGS \
         -j"$JOBS"
 
-    # Copy output binary to build directory
+    # Copy output to build directory
     echo "--- Copying output to $BUILD_DIR/"
     case "$PLATFORM" in
         windows)
@@ -116,7 +123,15 @@ elif [ "$MODE" = "release" ]; then
             cp -f "$GODOT_SOURCE"/bin/godot.linuxbsd.template_release* "$BUILD_DIR/" 2>/dev/null || true
             ;;
         web)
-            cp -f "$GODOT_SOURCE"/bin/godot.web.template_release* "$BUILD_DIR/" 2>/dev/null || true
+            cp -f "$GODOT_SOURCE"/bin/godot.web.template_release.wasm32.nothreads.wasm "$BUILD_DIR/" 2>/dev/null || true
+            cp -f "$GODOT_SOURCE"/bin/godot.web.template_release.wasm32.nothreads.js "$BUILD_DIR/" 2>/dev/null || true
+
+            # Create standalone .pck (cannot embed into wasm)
+            echo "--- Packing project data..."
+            python "$SCRIPT_DIR/pack.py" "$PROJECT_ROOT/project" "$BUILD_DIR/godot.web.template_release.wasm32.nothreads.pck"
+
+            # Copy HTML shell
+            cp -f "$SCRIPT_DIR/web_shell.html" "$BUILD_DIR/index.html"
             ;;
     esac
 

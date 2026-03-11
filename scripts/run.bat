@@ -4,7 +4,10 @@ setlocal
 cd /d "%~dp0.."
 
 set "MODE=%~1"
+set "PLATFORM=%~2"
+
 if "%MODE%"=="" set "MODE=debug"
+if "%PLATFORM%"=="" set "PLATFORM=windows"
 
 if "%MODE%"=="debug" goto :run_debug
 if "%MODE%"=="release" goto :run_release
@@ -32,6 +35,8 @@ echo === Running debug with: %GODOT% ===
 goto :end
 
 :run_release
+if "%PLATFORM%"=="web" goto :run_release_web
+
 set "BIN=build-windows\release\godot.windows.template_release.x86_64.exe"
 
 if not exist "%BIN%" (
@@ -47,6 +52,20 @@ call :setup_godot_dir
 
 echo === Running release: %BIN% ===
 "%BIN%"
+goto :end
+
+:run_release_web
+set "WEB_DIR=build-web\release"
+
+if not exist "%WEB_DIR%\index.html" (
+    echo ERROR: No web release build found in %WEB_DIR%\
+    echo   Run 'scripts\build.bat release web' first.
+    goto :fail
+)
+
+echo === Serving web release on http://localhost:8060 ===
+echo Press Ctrl+C to stop the server.
+python -m http.server 8060 --directory "%WEB_DIR%"
 goto :end
 
 :end
