@@ -82,6 +82,7 @@ popd
 :: Copy only the executables (not .exp/.lib linker artifacts)
 set "BUILD_DIR=build-%PLATFORM%\release"
 if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
+if exist "%BUILD_DIR%\*.pck" del /q "%BUILD_DIR%\*.pck"
 
 echo --- Copying output to %BUILD_DIR%\
 copy /y "%GODOT_SOURCE%\bin\godot.windows.template_release*.exe" "%BUILD_DIR%\" >nul 2>&1
@@ -94,6 +95,7 @@ if errorlevel 1 goto :fail
 :: Also embed into console variant
 python "%~dp0pack.py" "%PROJECT_DIR%\project" "%BUILD_DIR%\temp.pck" --embed "%BUILD_DIR%\godot.windows.template_release.x86_64.console.exe"
 if errorlevel 1 goto :fail
+if exist "%BUILD_DIR%\*.pck" del /q "%BUILD_DIR%\*.pck"
 
 echo --- Release build complete. Output in %BUILD_DIR%\
 goto :done

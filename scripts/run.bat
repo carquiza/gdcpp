@@ -32,10 +32,9 @@ echo === Running debug with: %GODOT% ===
 goto :end
 
 :run_release
-set "BIN="
-for %%f in ("build-windows\release\godot.windows.template_release*.exe") do set "BIN=%%f"
+set "BIN=build-windows\release\godot.windows.template_release.x86_64.exe"
 
-if "%BIN%"=="" (
+if not exist "%BIN%" (
     echo ERROR: No release binary found in build-windows\release\
     echo   Run 'scripts\build.bat release' first.
     goto :fail

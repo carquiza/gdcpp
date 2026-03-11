@@ -1,3 +1,0 @@
-GameMain::_ready() START
-GameMain::_ready() adding SpinningCube
-GameMain::_ready() DONE

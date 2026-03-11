@@ -22,6 +22,11 @@ void GameMain::_notification(int p_what) {
 	gdcpp_log(buf);
 	if (p_what == NOTIFICATION_READY) {
 		_ready();
+	} else if (p_what == NOTIFICATION_WM_CLOSE_REQUEST) {
+		SceneTree *tree = get_tree();
+		if (tree) {
+			tree->quit();
+		}
 	}
 }
 #endif

@@ -12,6 +12,7 @@
 #include "scene/3d/node_3d.h"
 #include "scene/3d/camera_3d.h"
 #include "scene/3d/light_3d.h"
+#include "scene/main/scene_tree.h"
 #include "scene/3d/world_environment.h"
 #include "scene/resources/environment.h"
 #endif

@@ -30,3 +30,6 @@ project/bin/
 # OS
 Thumbs.db
 .DS_Store
+
+# Debug files
+gdcpp_log.txt
