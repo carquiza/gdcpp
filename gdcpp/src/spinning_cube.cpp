@@ -8,6 +8,8 @@ void SpinningCube::_bind_methods() {
 
 #ifdef GDCPP_MODULE
 void SpinningCube::_notification(int p_what) {
+	MeshInstance3D::_notification(p_what);
+
 	switch (p_what) {
 		case NOTIFICATION_READY:
 			_ready();

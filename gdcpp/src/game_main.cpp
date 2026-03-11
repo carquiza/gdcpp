@@ -17,6 +17,8 @@ void GameMain::_bind_methods() {
 
 #ifdef GDCPP_MODULE
 void GameMain::_notification(int p_what) {
+	Node3D::_notification(p_what);
+
 	char buf[64];
 	snprintf(buf, sizeof(buf), "GameMain::_notification(%d)", p_what);
 	gdcpp_log(buf);
