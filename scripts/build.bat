@@ -95,7 +95,7 @@ goto :release_native
 :release_native
 echo --- Building Godot with gdcpp module release...
 pushd "%GODOT_SOURCE%"
-scons platform=%PLATFORM% profile="%PROFILE_PATH%" custom_modules="%MODULE_PATH%" -j%JOBS%
+scons platform=%PLATFORM% target=template_release profile="%PROFILE_PATH%" custom_modules="%MODULE_PATH%" -j%JOBS%
 if errorlevel 1 popd & goto :fail
 popd
 
@@ -123,7 +123,7 @@ goto :done
 :release_web
 echo --- Building Godot for web with gdcpp module release...
 pushd "%GODOT_SOURCE%"
-scons platform=web profile="%PROFILE_PATH%" custom_modules="%MODULE_PATH%" threads=no dlink_enabled=no -j%JOBS%
+scons platform=web target=template_release profile="%PROFILE_PATH%" custom_modules="%MODULE_PATH%" threads=no dlink_enabled=no -j%JOBS%
 if errorlevel 1 popd & goto :fail
 popd
 
@@ -131,17 +131,29 @@ set "BUILD_DIR=build-web\release"
 if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
 
 echo --- Copying web output to %BUILD_DIR%\
-copy /y "%GODOT_SOURCE%\bin\godot.web.template_release.wasm32.nothreads.wasm" "%BUILD_DIR%\" >nul 2>&1
-copy /y "%GODOT_SOURCE%\bin\godot.web.template_release.wasm32.nothreads.js" "%BUILD_DIR%\" >nul 2>&1
+copy /y "%GODOT_SOURCE%\bin\godot.web.template_release*.wasm" "%BUILD_DIR%\" >nul 2>&1
+copy /y "%GODOT_SOURCE%\bin\godot.web.template_release*.js" "%BUILD_DIR%\" >nul 2>&1
+
+:: Verify at least the .wasm arrived
+dir /b "%BUILD_DIR%\*.wasm" >nul 2>&1
+if errorlevel 1 (
+    echo ERROR: No .wasm file found after build. Check %GODOT_SOURCE%\bin\ for output.
+    dir /b "%GODOT_SOURCE%\bin\godot.web*" 2>nul
+    goto :fail
+)
+
+:: Determine the base name from the .wasm file that was copied
+for %%f in ("%BUILD_DIR%\*.wasm") do set "WEB_BASE=%%~nf"
 
 :: Create standalone .pck (cannot embed into wasm)
 call :setup_godot_dir
 echo --- Packing project data...
-python "%~dp0pack.py" "%PROJECT_DIR%\project" "%BUILD_DIR%\godot.web.template_release.wasm32.nothreads.pck"
+python "%~dp0pack.py" "%PROJECT_DIR%\project" "%BUILD_DIR%\%WEB_BASE%.pck"
 if errorlevel 1 goto :fail
 
-:: Copy HTML shell
-copy /y "%~dp0web_shell.html" "%BUILD_DIR%\index.html" >nul 2>&1
+:: Generate HTML shell with correct filenames
+echo --- Generating index.html for %WEB_BASE%...
+python -c "import sys; t=open(sys.argv[1]).read(); t=t.replace('__GODOT_JS__',sys.argv[2]+'.js').replace('__GODOT_BASE__',sys.argv[2]); open(sys.argv[3],'w').write(t)" "%~dp0web_shell.html" "%WEB_BASE%" "%BUILD_DIR%\index.html"
 
 echo --- Web release build complete. Output in %BUILD_DIR%\
 goto :done

@@ -108,6 +108,7 @@ elif [ "$MODE" = "release" ]; then
     cd "$GODOT_SOURCE"
     scons \
         platform="$SCONS_PLATFORM" \
+        target=template_release \
         profile="$PROJECT_ROOT/custom.py" \
         custom_modules="$MODULE_PATH" \
         $WEB_FLAGS \
@@ -123,15 +124,25 @@ elif [ "$MODE" = "release" ]; then
             cp -f "$GODOT_SOURCE"/bin/godot.linuxbsd.template_release* "$BUILD_DIR/" 2>/dev/null || true
             ;;
         web)
-            cp -f "$GODOT_SOURCE"/bin/godot.web.template_release.wasm32.nothreads.wasm "$BUILD_DIR/" 2>/dev/null || true
-            cp -f "$GODOT_SOURCE"/bin/godot.web.template_release.wasm32.nothreads.js "$BUILD_DIR/" 2>/dev/null || true
+            cp -f "$GODOT_SOURCE"/bin/godot.web.template_release*.wasm "$BUILD_DIR/" 2>/dev/null || true
+            cp -f "$GODOT_SOURCE"/bin/godot.web.template_release*.js "$BUILD_DIR/" 2>/dev/null || true
+
+            # Derive base name from the .wasm file
+            WEB_BASE=$(basename "$BUILD_DIR"/*.wasm .wasm)
+            if [ "$WEB_BASE" = "*.wasm" ]; then
+                echo "ERROR: No .wasm file found after build. Check $GODOT_SOURCE/bin/ for output."
+                ls "$GODOT_SOURCE"/bin/godot.web* 2>/dev/null || true
+                exit 1
+            fi
 
             # Create standalone .pck (cannot embed into wasm)
             echo "--- Packing project data..."
-            python "$SCRIPT_DIR/pack.py" "$PROJECT_ROOT/project" "$BUILD_DIR/godot.web.template_release.wasm32.nothreads.pck"
+            python "$SCRIPT_DIR/pack.py" "$PROJECT_ROOT/project" "$BUILD_DIR/$WEB_BASE.pck"
 
-            # Copy HTML shell
-            cp -f "$SCRIPT_DIR/web_shell.html" "$BUILD_DIR/index.html"
+            # Generate HTML shell with correct filenames
+            echo "--- Generating index.html for $WEB_BASE..."
+            sed "s/__GODOT_JS__/${WEB_BASE}.js/g;s/__GODOT_BASE__/${WEB_BASE}/g" \
+                "$SCRIPT_DIR/web_shell.html" > "$BUILD_DIR/index.html"
             ;;
     esac
 
