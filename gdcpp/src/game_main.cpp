@@ -1,11 +1,25 @@
 #include "game_main.h"
 #include "spinning_cube.h"
 
+#include <cstdio>
+
+static void gdcpp_log(const char *msg) {
+	FILE *f = fopen("gdcpp_log.txt", "a");
+	if (f) {
+		fprintf(f, "%s\n", msg);
+		fflush(f);
+		fclose(f);
+	}
+}
+
 void GameMain::_bind_methods() {
 }
 
 #ifdef GDCPP_MODULE
 void GameMain::_notification(int p_what) {
+	char buf[64];
+	snprintf(buf, sizeof(buf), "GameMain::_notification(%d)", p_what);
+	gdcpp_log(buf);
 	if (p_what == NOTIFICATION_READY) {
 		_ready();
 	}
@@ -13,6 +27,7 @@ void GameMain::_notification(int p_what) {
 #endif
 
 void GameMain::_ready() {
+	gdcpp_log("GameMain::_ready() START");
 	// Camera — positioned at (0, 1.5, 3), looking at origin
 	Camera3D *camera = memnew(Camera3D);
 	camera->look_at_from_position(Vector3(0, 1.5, 3), Vector3(0, 0, 0));
@@ -37,8 +52,12 @@ void GameMain::_ready() {
 	world_env->set_environment(env);
 	add_child(world_env);
 
+	gdcpp_log("GameMain::_ready() adding SpinningCube");
+
 	// Spinning cube
 	SpinningCube *cube = memnew(SpinningCube);
 	cube->set_speed(1.5);
 	add_child(cube);
+
+	gdcpp_log("GameMain::_ready() DONE");
 }

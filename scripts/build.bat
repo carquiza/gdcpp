@@ -43,7 +43,12 @@ echo --- Building GDExtension debug...
 scons platform=%PLATFORM% target=template_debug -j%JOBS%
 if errorlevel 1 goto :fail
 
-echo --- Build complete. Output in project\bin\
+:: Copy debug output
+set "BUILD_DIR=build-%PLATFORM%\debug"
+if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
+copy /y "project\bin\libgdcpp*" "%BUILD_DIR%\" >nul 2>&1
+
+echo --- Build complete. Output in %BUILD_DIR%\
 goto :done
 
 :build_release
@@ -74,12 +79,21 @@ scons platform=%PLATFORM% profile="%PROFILE_PATH%" custom_modules="%MODULE_PATH%
 if errorlevel 1 popd & goto :fail
 popd
 
-:: Copy output
-set "BUILD_DIR=build-%PLATFORM%"
+:: Copy only the executables (not .exp/.lib linker artifacts)
+set "BUILD_DIR=build-%PLATFORM%\release"
 if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
 
 echo --- Copying output to %BUILD_DIR%\
-xcopy /y "%GODOT_SOURCE%\bin\godot.windows.template_release*" "%BUILD_DIR%\" >nul 2>&1
+copy /y "%GODOT_SOURCE%\bin\godot.windows.template_release*.exe" "%BUILD_DIR%\" >nul 2>&1
+
+:: Embed project data into the executable
+call :setup_godot_dir
+echo --- Packing project data into executable...
+python "%~dp0pack.py" "%PROJECT_DIR%\project" "%BUILD_DIR%\temp.pck" --embed "%BUILD_DIR%\godot.windows.template_release.x86_64.exe"
+if errorlevel 1 goto :fail
+:: Also embed into console variant
+python "%~dp0pack.py" "%PROJECT_DIR%\project" "%BUILD_DIR%\temp.pck" --embed "%BUILD_DIR%\godot.windows.template_release.x86_64.console.exe"
+if errorlevel 1 goto :fail
 
 echo --- Release build complete. Output in %BUILD_DIR%\
 goto :done

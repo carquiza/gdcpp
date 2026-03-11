@@ -33,10 +33,10 @@ goto :end
 
 :run_release
 set "BIN="
-for %%f in ("build-windows\godot.windows.template_release*.exe") do set "BIN=%%f"
+for %%f in ("build-windows\release\godot.windows.template_release*.exe") do set "BIN=%%f"
 
 if "%BIN%"=="" (
-    echo ERROR: No release binary found in build-windows\
+    echo ERROR: No release binary found in build-windows\release\
     echo   Run 'scripts\build.bat release' first.
     goto :fail
 )
@@ -47,7 +47,7 @@ if exist "project\.godot\extension_list.cfg" del /q "project\.godot\extension_li
 call :setup_godot_dir
 
 echo === Running release: %BIN% ===
-"%BIN%" --path "%cd%\project"
+"%BIN%"
 goto :end
 
 :end
